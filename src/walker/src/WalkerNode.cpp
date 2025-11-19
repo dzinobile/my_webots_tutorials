@@ -9,7 +9,7 @@
 
 #define HALF_DISTANCE_BETWEEN_WHEELS 0.045
 #define WHEEL_RADIUS 0.025
-#define MAX_RANGE 0.15
+#define MAX_RANGE 0.5
 using namespace std::chrono_literals;
 
 void WalkerNode::step(){

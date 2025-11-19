@@ -117,7 +117,7 @@ Robot {
       lookupTable [
         0 1020 0
         0.05 1020 0
-        0.15 0 0
+        0.3 0 0
       ]
       numberOfRays 2
       aperture 1
@@ -132,7 +132,7 @@ Robot {
       lookupTable [
         0 1020 0
         0.05 1020 0
-        0.15 0 0
+        0.3 0 0
       ]
       numberOfRays 2
       aperture 1

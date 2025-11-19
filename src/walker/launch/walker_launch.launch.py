@@ -15,7 +15,7 @@ def generate_launch_description():
         robot_description = f.read()
 
     webots = WebotsLauncher(
-        world=os.path.join(package_dir, 'worlds', 'my_world.wbt')
+        world=os.path.join(package_dir, 'worlds', 'my_room.wbt')
     )
 
     my_robot_driver = WebotsController(
