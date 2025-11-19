@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<robot name="My robot">
+<robot name="Myrobot">
     <webots>
         <device reference="ds0" type="DistanceSensor">
             <ros>
@@ -13,6 +13,6 @@
                 <alwaysOn>true</alwaysOn>
             </ros>
         </device>
-        <plugin type="my_robot_driver::MyRobotDriver" />
+        <plugin type="WalkerNode" />
     </webots>
 </robot>

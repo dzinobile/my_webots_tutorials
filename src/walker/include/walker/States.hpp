@@ -9,7 +9,8 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/range.hpp"
-#include "WalkerNode.hpp"
+
+class WalkerNode;
 
 class States {
     public:

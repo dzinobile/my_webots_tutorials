@@ -12,21 +12,79 @@ find_package(geometry_msgs REQUIRED)
 find_package(webots_ros2_driver REQUIRED)
 find_package(pluginlib REQUIRED)
 
-add_executable(RobotWalker src/RobotWalker.cpp)
-target_include_directories(RobotWalker PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-target_compile_features(RobotWalker PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+# Export the plugin configuration file
+pluginlib_export_plugin_description_file(webots_ros2_driver my_walker_node.xml)
+
+# States node
+include_directories(include/walker)
+# add_executable(states_node
+#   src/States.cpp)
+# ament_target_dependencies(states_node
+#   rclcpp
+#   geometry_msgs
+#   sensor_msgs
+#   )
+# install(TARGETS
+#   states_node
+#   DESTINATION lib/${PROJECT_NAME}  
+# )
+# install(
+#   DIRECTORY include/
+#   DESTINATION include
+# )
+
+# WalkerNode library
+add_library(
+  ${PROJECT_NAME}
+  SHARED
+  src/WalkerNode.cpp
+  src/States.cpp
+)
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE
+  include
+)
 ament_target_dependencies(
-  RobotWalker
-  "rclcpp"
-  "geometry_msgs"
-  "webots_ros2_driver"
-  "pluginlib"
+  ${PROJECT_NAME}
+  pluginlib
+  rclcpp
+  webots_ros2_driver
+)
+install(TARGETS 
+  ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin  
 )
 
-install(TARGETS RobotWalker
-  DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY
+  launch
+  resource
+  worlds
+  DESTINATION share/${PROJECT_NAME}/)
+
+ament_export_include_directories(
+  include
+)
+ament_export_libraries(
+  ${PROJECT_NAME}
+)
+# add_executable(RobotWalker src/RobotWalker.cpp)
+# target_include_directories(RobotWalker PUBLIC
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#   $<INSTALL_INTERFACE:include>)
+# target_compile_features(RobotWalker PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+# ament_target_dependencies(
+#   RobotWalker
+#   "rclcpp"
+#   "geometry_msgs"
+#   "webots_ros2_driver"
+#   "pluginlib"
+# )
+
+# install(TARGETS RobotWalker
+#   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

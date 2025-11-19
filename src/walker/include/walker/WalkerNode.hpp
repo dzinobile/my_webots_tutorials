@@ -11,6 +11,7 @@
 #include "sensor_msgs/msg/range.hpp"
 #include "States.hpp"
 
+
 class WalkerNode : public webots_ros2_driver::PluginInterface {
     public:
 

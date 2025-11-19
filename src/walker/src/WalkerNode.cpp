@@ -11,6 +11,7 @@
 #define WHEEL_RADIUS 0.025
 #define MAX_RANGE 0.15
 using namespace std::chrono_literals;
+
 void WalkerNode::step(){
   auto forward_speed = cmd_vel_msg_.linear.x;
   auto angular_speed = cmd_vel_msg_.angular.z;
@@ -85,10 +86,14 @@ void WalkerNode::state_FORWARD::update(WalkerNode &context) {
   context.publisher_->publish(context.cmd_vel_msg_);
 }
 States* WalkerNode::state_FORWARD::transition(WalkerNode &context) {
-  if (context.prevDirection == "right"){
-    return &context.TURNLEFT_State;
+  if (context.obstacle_detected_){
+    if (context.prevDirection == "right"){
+      return &context.TURNLEFT_State;
+    } else {
+      return &context.TURNRIGHT_State;
+    }
   } else {
-    return &context.TURNRIGHT_State;
+    return &context.FORWARD_State;
   }
 }
 
@@ -100,7 +105,11 @@ void WalkerNode::state_TURNLEFT::update(WalkerNode &context) {
 }
 States* WalkerNode::state_TURNLEFT::transition(WalkerNode &context) {
   context.prevDirection = "left";
-  return &context.FORWARD_State;
+  if (context.obstacle_detected_){
+    return &context.TURNLEFT_State;
+  } else {
+    return &context.FORWARD_State;
+  }
 }
 
 WalkerNode::state_TURNRIGHT::state_TURNRIGHT(){}
@@ -111,7 +120,12 @@ void WalkerNode::state_TURNRIGHT::update(WalkerNode &context) {
 }
 States* WalkerNode::state_TURNRIGHT::transition(WalkerNode &context) {
   context.prevDirection = "right";
-  return &context.FORWARD_State;
+  if (context.obstacle_detected_){
+    return &context.TURNRIGHT_State;
+  } else {
+    return &context.FORWARD_State;
+  }
+  
 }
 
 
