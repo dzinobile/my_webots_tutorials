@@ -3,7 +3,7 @@
   <!-- The `base_class_type` attribute is always `webots_ros2_driver::PluginInterface`. -->
   <class type="WalkerNode" base_class_type="webots_ros2_driver::PluginInterface">
     <description>
-      This is a Webots ROS 2 plugin example
+      ROS2 Programming Assingment 4 Plugin
     </description>
   </class>
 </library>
