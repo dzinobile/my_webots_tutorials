@@ -5,7 +5,9 @@ from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
 from webots_ros2_driver.webots_launcher import WebotsLauncher
 from webots_ros2_driver.webots_controller import WebotsController
-
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler, EmitEvent
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     package_dir = get_package_share_directory('walker')
@@ -23,6 +25,18 @@ def generate_launch_description():
         ]
     )
 
+    record_arg = DeclareLaunchArgument(
+        'record',
+        default_value='false',
+        description='Enable bag record'
+    )
+
+    bag_recorder = ExecuteProcess(
+        cmd=['ros2', 'bag', 'record', '-a'],
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('record'))
+    )
+    
     walker_node = Node(
         package='walker',
         executable='walker_node',
@@ -30,8 +44,10 @@ def generate_launch_description():
 
 
     return LaunchDescription([
+        record_arg,
         webots,
         my_robot_driver,
+        bag_recorder,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit(
                 target_action=webots,

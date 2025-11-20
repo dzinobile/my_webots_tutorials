@@ -17,21 +17,6 @@ pluginlib_export_plugin_description_file(webots_ros2_driver my_walker_node.xml)
 
 # States node
 include_directories(include/walker)
-# add_executable(states_node
-#   src/States.cpp)
-# ament_target_dependencies(states_node
-#   rclcpp
-#   geometry_msgs
-#   sensor_msgs
-#   )
-# install(TARGETS
-#   states_node
-#   DESTINATION lib/${PROJECT_NAME}  
-# )
-# install(
-#   DIRECTORY include/
-#   DESTINATION include
-# )
 
 # WalkerNode library
 add_library(
