@@ -123,7 +123,7 @@ class WalkerNode : public webots_ros2_driver::PluginInterface {
     state_TURNRIGHT();
 
     /**
-     * @brief Evaluates current conditions and returns next requried state
+     * @brief Evaluates current conditions and returns next required state
      * Transitions to FORWARD_State if no obstacle detected
      * Remains in TURNRIGHT_State if obstacle detected
      * @param context Reference to the WalkerNode containing current state
@@ -137,10 +137,32 @@ class WalkerNode : public webots_ros2_driver::PluginInterface {
     void update(WalkerNode &context) override;
   };
 
+  /**
+   * @class state_STOP
+   * @brief FSM state where robot stops if no sensor messages for >1 second
+   */
   class state_STOP : public States {
-    public:
+   public:
+    /**
+     * @brief Constructor for state_STOP class
+     */
     state_STOP();
+
+    /**
+     * @brief Evaluates current conditions and returns next required state
+     * Transitions to FORWARD_State of no obstacle detected
+     * Transitions to TURNRIGHT_State if obstacle detected and previous turn was
+     * left Transitions to TURNLEFT_State if obstacle detected and prevoius turn
+     * was right Remains in STOP_State if no sensor message received for >1
+     * second
+     * @param context Reference to the WalkerNode containing current state
+     */
     States *transition(WalkerNode &context);
+
+    /**
+     * @brief Publish stop command to cmd_vel
+     * @param context Reference to WalkerNode containing current state
+     */
     void update(WalkerNode &context) override;
   };
 
@@ -214,5 +236,5 @@ class WalkerNode : public webots_ros2_driver::PluginInterface {
   rclcpp::Time last_right_msg_time_;
   bool sensor_timeout_;
 
-  webots_ros2_driver::WebotsNode* ros_node_;
+  webots_ros2_driver::WebotsNode *ros_node_;
 };

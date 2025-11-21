@@ -4,44 +4,65 @@ The objective of this assignment is to become familiar with simulating with Webo
  - Move forward until obstacle detected within 0.5 meters
  - Turn until obstacle no longer detected, then continue moving forward
  - Alternate turn directions whenever a new obstacle is encountered
-The normal simulation is run through a launch file, which allows an input argument for running the ros2 bag record. A second launch file launches a version of the robot with no sensors in an open world, to demonstrate the bag playback functionality. 
+The normal simulation is run through a launch file, which allows an input argument for running the ros2 bag record. A second launch file launches a version of the robot with no sensors in an open world, to demonstrate the bag playback functionality. When the bag is played back, the blind robot will move through the empty world as if recieving sensor data from the populated world.
 ## Implementing the state machine
-The FSM pattern was implemented by creating a Context class called "WalkerNode" in which the 3 machine states are defined, and an abstract State Interface class called "States" which defines the common interface used by all states. The three states are:
+The FSM pattern was implemented by creating a Context class called "WalkerNode" in which the 3 machine states are defined, and an abstract State Interface class called "States" which defines the common interface used by all states. The four states are:
+- STOP: Robot stops if no sensor data recieved for >1 second.
 - FORWARD: Robot moves forward until encountering an obstacle.
 - TURNLEFT: Robot turns left until no obstacle detected.
 - TURNRIGHT: Robot turns right until no obstacle detected.
-Through the Interface class, each class contains an update method and a transition method. The update method is responsible for executing the behavior associated with the current machine state, i.e. publishing cmd_vel messages to move forward or turn right or left. The transition method evaluates the sensor data and changes the robot state accordingly depending on the current state:
+Through the Interface class, each class contains an update method and a transition method. The update method is responsible for executing the behavior associated with the current machine state, i.e. publishing cmd_vel messages to stop, move forward, or turn right or left. The transition method evaluates the sensor data and changes the robot state accordingly depending on the current state:
+- If in STOP:
+    - If no sensor data for >1 second:
+        - Stay in STOP state
+    - If obstacle detected:
+        - If previously turned right, switch to TURNLEFT state
+        - If previously turned left, switch to TURNRIGHT state
+    - If no obstacle detected:
+        - Switch to FORWARD state
+
+
 - If in FORWARD:
-- If obstacle detected:
-    If previously turned right, switch to TURNLEFT state
-    If previously turned left, switch to TURNRIGHT state
-- Else:
-    - Stay in FORWARD state
+    - If no sensor data for >1 second:
+        - switch to STOP state
+    - If obstacle detected:
+        If previously turned right, switch to TURNLEFT state
+        If previously turned left, switch to TURNRIGHT state
+    - If no obstacle detected:
+        - Stay in FORWARD state
+
+
 - If in TURNLEFT:
-- If obstacle detected:
-    - Stay in TURNLEFT state
-- Else:
-    - Switch to FORWARD state and mark previously turned left
+    - If no sensor data for >1 second:
+        - switch to STOP state
+    - If obstacle detected:
+        - Stay in TURNLEFT state
+    - If no obstacle detected:
+        - Switch to FORWARD state and mark previously turned left
+
+
 - If in TURNRIGHT:
-- If obstacle detected:
-    - stay in TURNRIGHT state
-- Else:
-    - Switch to FORWARD state and mark previously turned right
+    - If no sensor data for >1 second:
+        - switch to STOP state
+    - If obstacle detected:
+        - stay in TURNRIGHT state
+    - If no obstacle detected:
+        - Switch to FORWARD state and mark previously turned right
 ## Assumptions
  - Using ROS2 Humble
 ## Dependencies
 ### Standard Library
-Memory
+- Memory
 ### ROS2
-rclcpp
-geometry_msgs
-sensor_msgs
-Pluginlib
+- rclcpp
+- geometry_msgs
+- sensor_msgs
+- Pluginlib
 ### Webots
-Webots_ros2_driver
+- Webots_ros2_driver
 ### Python
-launch
-launch_ros
+- launch
+- launch_ros
 ## Build / Run Steps
 ### Simulation
 1. Clone github repository
@@ -60,29 +81,28 @@ source /usr/share/colcon_cd/function/colcon_cd.sh
 colcon build
 source install/setup.bash
 ```
-4. Run simulation (bag record off)
+4. Run simulation (To visualize sensors, click view > optional rendering > show DistanceSensor rays.)
 ```bash
 ros2 launch walker walker_launch.launch.py
 ```
-To visualize sensors, click view > optional rendering > show DistanceSensor rays.
-Press ctrl + c to exit simulation.
+5. Press ctrl + c to exit simulation.
 
-5. Run simulation (bag record on)
+6. Run simulation (bag record on)
 ```bash
 ros2 launch walker walker_launch.launch.py record:=true
 ```
-6. Let simulation run for 15-30 seconds to record bag, then press ctrl + c and verify bag record directory has appeared in workspace.
-### Bag Record playback - Topic Echo
-7. Launch empty world for bag play demonstration
+7. Let simulation run for 15-30 seconds to record bag, then press ctrl + c and verify bag record directory has appeared in workspace.
+### Bag Record playback - Blind Robot
+8. Launch empty world for bag play demonstration. An empty room with a sensorless robot should spawn. 
 ```bash
 ros2 launch walker walker_empty.launch.py
 ```
-An empty room with a sensorless robot should spawn. 
-8. Open a new terminal and play back bag 
+
+9. Open a new terminal and play back bag. Verify robot begins moving as if recieving sensor data, and as if room populated with objects.
 ```bash
 source install/setup.bash
 ros2 bag play <bag directory>
 ```
-Verify robot begins moving as if recieving sensor data.
+
 
 

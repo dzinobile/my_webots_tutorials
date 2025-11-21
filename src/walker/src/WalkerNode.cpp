@@ -89,10 +89,12 @@ void WalkerNode::init(
       "/right_sensor", 1,
       std::bind(&WalkerNode::rightSensorCallback, this, std::placeholders::_1));
 
+  // Initialize ros node to use now() method for sensor timeout
   ros_node_ = node;
   last_left_msg_time_ = ros_node_->now();
   last_right_msg_time_ = ros_node_->now();
-  
+  sensor_timeout_ = true;
+
   timer_ = node->create_wall_timer(500ms,
                                    std::bind(&WalkerNode::timerCallback, this));
 }
@@ -153,7 +155,7 @@ States *WalkerNode::state_FORWARD::transition(WalkerNode &context) {
   if (context.sensor_timeout_) {
     return &context.STOP_State;
   }
-  
+
   if (context.obstacle_detected_) {
     if (context.prevDirection == "right") {
       return &context.TURNLEFT_State;
@@ -191,7 +193,7 @@ void WalkerNode::state_TURNLEFT::update(WalkerNode &context) {
 States *WalkerNode::state_TURNLEFT::transition(WalkerNode &context) {
   context.prevDirection = "left";
 
-    if (context.sensor_timeout_) {
+  if (context.sensor_timeout_) {
     return &context.STOP_State;
   }
 
@@ -227,7 +229,7 @@ void WalkerNode::state_TURNRIGHT::update(WalkerNode &context) {
  */
 States *WalkerNode::state_TURNRIGHT::transition(WalkerNode &context) {
   context.prevDirection = "right";
-    if (context.sensor_timeout_) {
+  if (context.sensor_timeout_) {
     return &context.STOP_State;
   }
 
@@ -238,12 +240,31 @@ States *WalkerNode::state_TURNRIGHT::transition(WalkerNode &context) {
   }
 }
 
-WalkerNode::state_STOP::state_STOP(){}
+/**
+ * @class WakerNode::state_STOP
+ * @brief State in which the robot stops
+ */
+WalkerNode::state_STOP::state_STOP() {}
+
+/**
+ * @brief Publishes message to cmd_vel for stopping robot
+ * @param context Reference to the WalkerNode containing robot state
+ */
 void WalkerNode::state_STOP::update(WalkerNode &context) {
   context.cmd_vel_msg_.linear.x = 0.0;
   context.cmd_vel_msg_.angular.z = 0.0;
   context.publisher_->publish(context.cmd_vel_msg_);
 }
+
+/**
+ * @brief Determines next state based on obstacle detection
+ * If sensor timeout, continue in stopped state
+ * If obstacle detected and previous turn was right, move to turn left state
+ * If obstacle detected and previous turn was left, move to turn right state
+ * If no obstacle detected, move to forward state
+ * @param context The robot context
+ * @return Pointer to the next state
+ */
 States *WalkerNode::state_STOP::transition(WalkerNode &context) {
   if (context.sensor_timeout_) {
     return &context.STOP_State;
@@ -275,16 +296,16 @@ void WalkerNode::cmdVelCallback() {
 /**
  * @brief Timer callback to trigger state machine updates
  */
-void WalkerNode::timerCallback() { 
-  
+void WalkerNode::timerCallback() {
   auto now_time = ros_node_->now();
   if ((now_time - last_left_msg_time_).seconds() > 1.0 ||
-       (now_time - last_right_msg_time_).seconds() > 1.0) {
-        sensor_timeout_ = true;
+      (now_time - last_right_msg_time_).seconds() > 1.0) {
+    sensor_timeout_ = true;
   } else {
     sensor_timeout_ = false;
   }
 
-  cmdVelCallback(); }
+  cmdVelCallback();
+}
 
 PLUGINLIB_EXPORT_CLASS(WalkerNode, webots_ros2_driver::PluginInterface)
