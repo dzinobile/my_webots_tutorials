@@ -19,91 +19,93 @@
  */
 
 #include "WalkerNode.hpp"
-#include "States.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include <cstdio>
-#include <functional>
+
 #include <webots/motor.h>
 #include <webots/robot.h>
+
+#include "States.hpp"
 #include "pluginlib/class_list_macros.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 #define HALF_DISTANCE_BETWEEN_WHEELS 0.045
 #define WHEEL_RADIUS 0.025
-#define MAX_RANGE 0.5 // Sensor detection range
+#define MAX_RANGE 0.5  // Sensor detection range
 
 using namespace std::chrono_literals;
 
 /**
  * @brief Computes and applies motor commands at each simulation step
- * 
+ *
  * Converts cmd_vel message into differential drive wheel velocities
  * and sends them to the Webots motor service
  */
-void WalkerNode::step(){
+void WalkerNode::step() {
   auto forward_speed = cmd_vel_msg_.linear.x;
   auto angular_speed = cmd_vel_msg_.angular.z;
-  auto command_motor_left = 
-    (forward_speed - angular_speed * HALF_DISTANCE_BETWEEN_WHEELS) / 
-    WHEEL_RADIUS;
-  auto command_motor_right = 
-    (forward_speed + angular_speed * HALF_DISTANCE_BETWEEN_WHEELS) / 
-    WHEEL_RADIUS;
+  auto command_motor_left =
+      (forward_speed - angular_speed * HALF_DISTANCE_BETWEEN_WHEELS) /
+      WHEEL_RADIUS;
+  auto command_motor_right =
+      (forward_speed + angular_speed * HALF_DISTANCE_BETWEEN_WHEELS) /
+      WHEEL_RADIUS;
 
   wb_motor_set_velocity(left_motor, command_motor_left);
   wb_motor_set_velocity(right_motor, command_motor_right);
-
-  
 }
 
 /**
  * @brief Initializes robot hardware, ROS interfaces, and state machine
- * 
+ *
  *  - Retrieves Webots motor handles
  *  - Sets initial motor status
  *  - Creates publisher for cmd_vel
  *  - Creates subscribers for sensors
  *  - Initializes state machine to FORWARD state
  *  - Starts a timer to drive state machine updates
- * 
+ *
  * @param node Pointer to Webots driver node used for ROS interfaces
- * @param parameters Map containing plugin parameters (unused, leftover from modifying example file)
+ * @param parameters Map containing plugin parameters (unused, leftover from
+ * modifying example file)
  */
 void WalkerNode::init(
-  webots_ros2_driver::WebotsNode *node,
-  std::unordered_map<std::string, std::string> &parameters) {
-    right_motor = wb_robot_get_device("right wheel motor");
-    left_motor = wb_robot_get_device("left wheel motor");
-    wb_motor_set_position(left_motor, INFINITY);
-    wb_motor_set_velocity(left_motor, 0.0);
+    webots_ros2_driver::WebotsNode *node,
+    std::unordered_map<std::string, std::string> &parameters) {
+  right_motor = wb_robot_get_device("right wheel motor");
+  left_motor = wb_robot_get_device("left wheel motor");
+  wb_motor_set_position(left_motor, INFINITY);
+  wb_motor_set_velocity(left_motor, 0.0);
 
-    wb_motor_set_position(right_motor, INFINITY);
-    wb_motor_set_velocity(right_motor, 0.0);
+  wb_motor_set_position(right_motor, INFINITY);
+  wb_motor_set_velocity(right_motor, 0.0);
 
-    curState = &FORWARD_State;
-    publisher_ = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
-    
-    left_sensor_sub_ = node->create_subscription<sensor_msgs::msg::Range>(
-      "/left_sensor", 1, 
-      std::bind(&WalkerNode::leftSensorCallback, this, 
-      std::placeholders::_1));
+  curState = &STOP_State;
+  publisher_ = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
 
-    right_sensor_sub_ = node->create_subscription<sensor_msgs::msg::Range>(
+  left_sensor_sub_ = node->create_subscription<sensor_msgs::msg::Range>(
+      "/left_sensor", 1,
+      std::bind(&WalkerNode::leftSensorCallback, this, std::placeholders::_1));
+
+  right_sensor_sub_ = node->create_subscription<sensor_msgs::msg::Range>(
       "/right_sensor", 1,
-      std::bind(&WalkerNode::rightSensorCallback, this,
-      std::placeholders::_1));
+      std::bind(&WalkerNode::rightSensorCallback, this, std::placeholders::_1));
 
-    timer_ = node->create_wall_timer(
-      500ms, std::bind(&WalkerNode::timerCallback, this));
-  }
+  ros_node_ = node;
+  last_left_msg_time_ = ros_node_->now();
+  last_right_msg_time_ = ros_node_->now();
+  
+  timer_ = node->create_wall_timer(500ms,
+                                   std::bind(&WalkerNode::timerCallback, this));
+}
 
 /**
  * @brief Callback function for left distance sensor
  * @param msg Shared pointer to ROS Range message from left sensor
  */
 void WalkerNode::leftSensorCallback(
-  const sensor_msgs::msg::Range::SharedPtr msg) {
-    left_sensor_value = msg->range;
-  }
+    const sensor_msgs::msg::Range::SharedPtr msg) {
+  left_sensor_value = msg->range;
+  last_left_msg_time_ = ros_node_->now();
+}
 
 /**
  * @brief Callback function for right distance sensor
@@ -111,23 +113,23 @@ void WalkerNode::leftSensorCallback(
  * @param msg Shared pointer to ROS Range message from right sensor
  */
 void WalkerNode::rightSensorCallback(
-  const sensor_msgs::msg::Range::SharedPtr msg) {
-    right_sensor_value = msg->range;
+    const sensor_msgs::msg::Range::SharedPtr msg) {
+  right_sensor_value = msg->range;
+  last_right_msg_time_ = ros_node_->now();
 
-    if(left_sensor_value < 0.9 * MAX_RANGE || 
-        right_sensor_value < 0.9 * MAX_RANGE) {
-          obstacle_detected_ = true;
-        } else {
-          obstacle_detected_ = false;
-        }
-
+  if (left_sensor_value < 0.9 * MAX_RANGE ||
+      right_sensor_value < 0.9 * MAX_RANGE) {
+    obstacle_detected_ = true;
+  } else {
+    obstacle_detected_ = false;
   }
+}
 
 /**
  * @class WalkerNode::state_FORWARD
  * @brief State in which robot drives forward
  */
-WalkerNode::state_FORWARD::state_FORWARD(){}
+WalkerNode::state_FORWARD::state_FORWARD() {}
 
 /**
  * @brief Publishes message to cmd_vel for moving forward
@@ -147,9 +149,13 @@ void WalkerNode::state_FORWARD::update(WalkerNode &context) {
  * @param context The robot context
  * @return Pointer to the next state
  */
-States* WalkerNode::state_FORWARD::transition(WalkerNode &context) {
-  if (context.obstacle_detected_){
-    if (context.prevDirection == "right"){
+States *WalkerNode::state_FORWARD::transition(WalkerNode &context) {
+  if (context.sensor_timeout_) {
+    return &context.STOP_State;
+  }
+  
+  if (context.obstacle_detected_) {
+    if (context.prevDirection == "right") {
       return &context.TURNLEFT_State;
     } else {
       return &context.TURNRIGHT_State;
@@ -163,7 +169,7 @@ States* WalkerNode::state_FORWARD::transition(WalkerNode &context) {
  * @class WalkerNode::state_TURNLEFT
  * @brief State in which robot turns left
  */
-WalkerNode::state_TURNLEFT::state_TURNLEFT(){}
+WalkerNode::state_TURNLEFT::state_TURNLEFT() {}
 
 /**
  * @brief Publishes message to cmd_vel for turning left
@@ -182,9 +188,14 @@ void WalkerNode::state_TURNLEFT::update(WalkerNode &context) {
  * @param context The robot context
  * @return Pointer to the next state
  */
-States* WalkerNode::state_TURNLEFT::transition(WalkerNode &context) {
+States *WalkerNode::state_TURNLEFT::transition(WalkerNode &context) {
   context.prevDirection = "left";
-  if (context.obstacle_detected_){
+
+    if (context.sensor_timeout_) {
+    return &context.STOP_State;
+  }
+
+  if (context.obstacle_detected_) {
     return &context.TURNLEFT_State;
   } else {
     return &context.FORWARD_State;
@@ -195,7 +206,7 @@ States* WalkerNode::state_TURNLEFT::transition(WalkerNode &context) {
  * @class WalkerNode::state_TURNRIGHT
  * @brief State in which the robot turns right
  */
-WalkerNode::state_TURNRIGHT::state_TURNRIGHT(){}
+WalkerNode::state_TURNRIGHT::state_TURNRIGHT() {}
 
 /**
  * @brief Publishes message to cmd_vel for turning right
@@ -214,35 +225,66 @@ void WalkerNode::state_TURNRIGHT::update(WalkerNode &context) {
  * @param context The robot context
  * @return Pointer to the next state
  */
-States* WalkerNode::state_TURNRIGHT::transition(WalkerNode &context) {
+States *WalkerNode::state_TURNRIGHT::transition(WalkerNode &context) {
   context.prevDirection = "right";
-  if (context.obstacle_detected_){
+    if (context.sensor_timeout_) {
+    return &context.STOP_State;
+  }
+
+  if (context.obstacle_detected_) {
     return &context.TURNRIGHT_State;
   } else {
     return &context.FORWARD_State;
   }
-  
+}
+
+WalkerNode::state_STOP::state_STOP(){}
+void WalkerNode::state_STOP::update(WalkerNode &context) {
+  context.cmd_vel_msg_.linear.x = 0.0;
+  context.cmd_vel_msg_.angular.z = 0.0;
+  context.publisher_->publish(context.cmd_vel_msg_);
+}
+States *WalkerNode::state_STOP::transition(WalkerNode &context) {
+  if (context.sensor_timeout_) {
+    return &context.STOP_State;
+  }
+
+  if (!context.obstacle_detected_) {
+    return &context.FORWARD_State;
+  }
+
+  if (context.prevDirection == "right") {
+    return &context.TURNLEFT_State;
+  } else {
+    return &context.TURNRIGHT_State;
+  }
 }
 
 /**
  * @brief Executes one full state machine cycle:
- *  - Execute current state's update() method 
+ *  - Execute current state's update() method
  *  - Check transitions and switch to next state
  */
-void WalkerNode::cmdVelCallback(){
+void WalkerNode::cmdVelCallback() {
   curState->update(*this);
 
   States *next = curState->transition(*this);
   curState = next;
-
 }
 
 /**
  * @brief Timer callback to trigger state machine updates
  */
-void WalkerNode::timerCallback(){
-  cmdVelCallback();
-}
+void WalkerNode::timerCallback() { 
+  
+  auto now_time = ros_node_->now();
+  if ((now_time - last_left_msg_time_).seconds() > 1.0 ||
+       (now_time - last_right_msg_time_).seconds() > 1.0) {
+        sensor_timeout_ = true;
+  } else {
+    sensor_timeout_ = false;
+  }
 
-PLUGINLIB_EXPORT_CLASS(WalkerNode, 
-  webots_ros2_driver::PluginInterface)
+  cmdVelCallback(); }
+
+PLUGINLIB_EXPORT_CLASS(WalkerNode, webots_ros2_driver::PluginInterface)

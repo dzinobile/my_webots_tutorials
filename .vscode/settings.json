@@ -74,5 +74,6 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "/home/dzinobile/github/3_semester/ENPM700/my_webots_tutorials/src/walker"
 }

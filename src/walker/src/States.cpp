@@ -19,6 +19,7 @@
  */
 
 #include "States.hpp"
+
 #include "WalkerNode.hpp"
 /**
  * @brief Constructor for States class
@@ -29,5 +30,3 @@ States::States(){};
  * @brief Destructor for States class
  */
 States::~States(){};
-
-

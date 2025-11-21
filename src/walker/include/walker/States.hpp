@@ -21,47 +21,46 @@
 
 #include <memory>
 
+#include "geometry_msgs/msg/twist.hpp"
 #include "rclcpp/macros.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/range.hpp"
 #include "webots_ros2_driver/PluginInterface.hpp"
 #include "webots_ros2_driver/WebotsNode.hpp"
 
-#include "geometry_msgs/msg/twist.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/range.hpp"
-
-//Forward declaration to avoid circular references
-class WalkerNode; 
+// Forward declaration to avoid circular references
+class WalkerNode;
 
 /**
  * @class States
  * @brief Abstract state interface class for robot states
  * Defines common interface used by all states in the state machine:
  *  - update() issues command basd on current state
- *  - transition() determines the next state based on robot condition and sensor readings
+ *  - transition() determines the next state based on robot condition and sensor
+ * readings
  */
 class States {
-    public:
-        /**
-         * @brief Constructor for States class
-         */
-        States();
+ public:
+  /**
+   * @brief Constructor for States class
+   */
+  States();
 
-        /**
-         * @brief Virtual destructor for States class
-         */
-        virtual ~States();
+  /**
+   * @brief Virtual destructor for States class
+   */
+  virtual ~States();
 
-        /**
-         * @brief Virtual method to execute behavior corresponding to current state
-         * @param context Reference to the WalkerNode 
-         */
-        virtual void update(WalkerNode &context) = 0;
-        
-        /**
-         * @brief Change or keep state based on current conditions
-         * @param context Reference to the WalkerNode
-         * @return Pointer to the next state
-         */
-        virtual States* transition(WalkerNode &context) = 0;
+  /**
+   * @brief Virtual method to execute behavior corresponding to current state
+   * @param context Reference to the WalkerNode
+   */
+  virtual void update(WalkerNode &context) = 0;
 
+  /**
+   * @brief Change or keep state based on current conditions
+   * @param context Reference to the WalkerNode
+   * @return Pointer to the next state
+   */
+  virtual States *transition(WalkerNode &context) = 0;
 };

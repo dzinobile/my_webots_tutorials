@@ -55,21 +55,6 @@ ament_export_include_directories(
 ament_export_libraries(
   ${PROJECT_NAME}
 )
-# add_executable(RobotWalker src/RobotWalker.cpp)
-# target_include_directories(RobotWalker PUBLIC
-#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#   $<INSTALL_INTERFACE:include>)
-# target_compile_features(RobotWalker PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-# ament_target_dependencies(
-#   RobotWalker
-#   "rclcpp"
-#   "geometry_msgs"
-#   "webots_ros2_driver"
-#   "pluginlib"
-# )
-
-# install(TARGETS RobotWalker
-#   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
