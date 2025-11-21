@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<robot name="Myrobot">
+    <link name="base_link"/>
+
+    <link name="ds0_link"/>
+    <joint name="ds0_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="ds0_link"/>
+    <origin xyz="0.042 0.02 0.063" rpy="0 0 0.5236"/>
+    </joint>
+
+    <link name="ds1_link"/>
+    <joint name="ds1_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="ds1_link"/>
+    <origin xyz="0.042 -0.02 0.063" rpy="0 0 -0.5236"/>
+    </joint>
+    <webots>
+        <device reference="ds0" type="DistanceSensor">
+            <ros>
+                <topicName>/left_sensor</topicName>
+                <alwaysOn>true</alwaysOn>
+            </ros>
+        </device>
+        <device reference="ds1" type="DistanceSensor">
+            <ros>
+                <topicName>/right_sensor</topicName>
+                <alwaysOn>true</alwaysOn>
+            </ros>
+        </device>
+        <plugin type="WalkerNode" />
+    </webots>
+</robot>
